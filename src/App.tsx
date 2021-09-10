@@ -7,7 +7,7 @@ const handleFormSubmit = (event:React.SyntheticEvent) => {
   event.preventDefault();
   const target = event.nativeEvent.target as HTMLFormElement
   const data = new FormData(target);
-  console.log(Object.fromEntries(data.entries()))
+  console.log(Array.from(data.entries()))
 }
 
 const File = () => {
