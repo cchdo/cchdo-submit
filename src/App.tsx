@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import {Form, Button} from 'react-bootstrap';
@@ -10,13 +10,27 @@ const handleFormSubmit = (event:React.SyntheticEvent) => {
   console.log(Object.fromEntries(data.entries()))
 }
 
-const File = ({id}:{id:number}) => {
-      return (
-      <Form.Group className="mb-3" controlId="submitter_email">
-        <Form.Label>Your Email</Form.Label>
-        <Form.Control name={"file_whatever" + id} type="file" />
-      </Form.Group>
-      )
+const File = () => {
+  const [files, setFiles] = useState<string[]>([])
+  const handleFileSelect = (event:React.SyntheticEvent) => {
+    const target = event.target as HTMLInputElement
+    if (target.files === null){
+      return
+    }
+    setFiles(Array.from(target.files).map(v => v.name))
+  };
+  return (
+    <Form.Group className="mb-3" controlId="submitter_email">
+      <Form.Label>Select FIles</Form.Label>
+      <Form.Control onChange={handleFileSelect} name="file" type="file" multiple />
+      <Form.Text>You can select multiple files using your system dialog box</Form.Text>
+      {files.length > 1 &&
+        <ul>
+          {files.map(v => <li key={v}>{v}</li>)}
+        </ul>
+      }
+    </Form.Group>
+  )
 }
 
 function App() {
@@ -32,8 +46,7 @@ function App() {
         <Form.Control name="submitter_email" type="email" placeholder="example@example.edu" />
       </Form.Group>
 
-      <File id={0} />
-      <File id={2} />
+      <File />
 
       <Button variant="primary" type="submit">
         Submit
