@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import {Form, Button} from 'react-bootstrap';
+
+const CCHDO_CRUISE_INFO = "https://cchdo.ucsd.edu/api/v1/cruise/all"
 
 const handleFormSubmit = (event:React.SyntheticEvent) => {
   event.preventDefault();
@@ -10,7 +12,7 @@ const handleFormSubmit = (event:React.SyntheticEvent) => {
   console.log(Array.from(data.entries()))
 }
 
-const File = () => {
+const Files = () => {
   const [files, setFiles] = useState<string[]>([])
   const handleFileSelect = (event:React.SyntheticEvent) => {
     const target = event.target as HTMLInputElement
@@ -33,8 +35,39 @@ const File = () => {
   )
 }
 
+type CruiseSelectorStates = "notYet" | "loadError" | "loaded"
+
+const CruiseSelector = () => {
+  const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet")
+  const [cruises, setCrusies] = useState([])
+
+  useEffect(() => {
+    async function loadCruiseInfo(){
+      try{
+        let response = await fetch(CCHDO_CRUISE_INFO)
+        let data = await response.json()
+        setCrusies(data)
+        setLoaded("loaded")
+      } catch (err){
+        setLoaded("loadError")
+      }
+    }
+    loadCruiseInfo()
+  }, [])
+  const buttonText = {
+    notYet: "Loading cruises...",
+    loadError: "Could not load cruise list",
+    loaded: `Select Cruise: (${cruises.length} cruises)`,
+  }
+
+  return <Button variant="outline-secondary" disabled={loaded!=="loaded"}>{buttonText[loaded]}</Button>
+}
+
 function App() {
   return (
+    <div>
+    <h1>CCHDO Submit Page</h1>
+    <h2>Required Information</h2>
     <Form onSubmit={handleFormSubmit}>
       <Form.Group className="mb-3" controlId="submitter_name">
         <Form.Label>Your Name</Form.Label>
@@ -46,12 +79,34 @@ function App() {
         <Form.Control name="submitter_email" type="email" placeholder="example@example.edu" />
       </Form.Group>
 
-      <File />
+      <h2>Files to Upload</h2>
+      <Files />
+
+      <h2>Optional Questions about uploaded data</h2>
+
+      <h3>Associate with a cruise?</h3>
+      <CruiseSelector />
+
+      <h3>Any Notes?</h3>
+        <Form.Group className="mb-3" controlId="submission_notes">
+          <Form.Label>Public Submission Notes</Form.Label>
+          <Form.Control as="textarea" rows={3} />
+          <Form.Text> Anything else users of the data should know? These notes will appear on cruise pages.</Form.Text>
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="submission_notes_private">
+          <Form.Label>Private Submission Notes</Form.Label>
+          <Form.Control as="textarea" rows={3} />
+          <Form.Text>Anything else you would like CCHDO staff to know? If data are not intended for public access, please note why here</Form.Text>
+        </Form.Group>
+
+      <hr />
 
       <Button variant="primary" type="submit">
         Submit
       </Button>
     </Form>
+    </div>
   );
 }
 
