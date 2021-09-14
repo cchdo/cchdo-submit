@@ -63,6 +63,18 @@ const CruiseSelector = () => {
   return <Button variant="outline-secondary" disabled={loaded!=="loaded"}>{buttonText[loaded]}</Button>
 }
 
+const DataTypeSelector = () => {
+  return <div>
+    <Form.Group className="mb-3" controlId="submission_notes_private">
+    <Form.Check id="submission_data_type_btl" name="submission_data_type" value="bottle" type="checkbox" label="bottle data"/>
+    <Form.Check id="submission_data_type_ctd" name="submission_data_type" value="ctd" type="checkbox" label="CTD data"/>
+    <Form.Check id="submission_data_type_raw" name="submission_data_type" value="raw" type="checkbox" label="raw ctd data"/>
+    <Form.Check id="submission_data_type_other" name="submission_data_type" value="other" type="checkbox" label="other"/>
+    <Form.Text>select all that apply</Form.Text>
+    </Form.Group>
+</div>
+}
+
 function App() {
   return (
     <div>
@@ -86,6 +98,9 @@ function App() {
 
       <h3>Associate with a cruise?</h3>
       <CruiseSelector />
+
+      <h3>Associate with data type?</h3>
+      <DataTypeSelector />
 
       <h3>Any Notes?</h3>
         <Form.Group className="mb-3" controlId="submission_notes">
