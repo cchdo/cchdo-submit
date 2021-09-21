@@ -1,7 +1,31 @@
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { Form, Button } from "react-bootstrap";
+import { Form, Button, Table } from "react-bootstrap";
+
+interface Participant {
+  name: string;
+  email: string;
+  role: string;
+  institution: string;
+}
+
+interface Collections {
+  groups: string[];
+  oceans: string[];
+  programs: string[];
+  woce_lines: string[];
+}
+
+interface Cruise {
+  expocode: string;
+  startDate: string;
+  endDate: string;
+  ship: string;
+  country: string;
+  collections: Collections;
+  participants: Participant[];
+}
 
 const CCHDO_CRUISE_INFO = "https://cchdo.ucsd.edu/api/v1/cruise/all";
 
@@ -32,11 +56,11 @@ const Files = () => {
       />
       <Form.Text>
         You can select multiple files using your system dialog box. (see how:{" "}
-        <a href="https://support.apple.com/en-lamr/guide/mac-help/mchlp1378/mac">
+        <a rel="noopener noreferrer" target="_blank" href="https://support.apple.com/en-lamr/guide/mac-help/mchlp1378/mac">
           mac
         </a>
         ,{" "}
-        <a href="https://nerdschalk.com/how-to-select-multiple-files-on-windows-10-in-2021-7-ways/">
+        <a rel="noopener noreferrer" target="_blank" href="https://nerdschalk.com/how-to-select-multiple-files-on-windows-10-in-2021-7-ways/">
           windows
         </a>
         )
@@ -54,9 +78,32 @@ const Files = () => {
 
 type CruiseSelectorStates = "notYet" | "loadError" | "loaded";
 
+const CruiseLines = ({ cruise }: { cruise: Cruise }) => {
+  const line = cruise.collections.woce_lines;
+  if (line.length === 0) {
+    return <span></span>
+  }
+  return (<ul>
+    {line.map((line) => <li key={`${cruise.expocode}_${line}`}>{line}</li>)}
+  </ul>)
+}
+
+const PIList = ({ cruise }: { cruise: Cruise }) => {
+  const roles = new Set(["Chief Scientist", "Co-Chief Scientist"])
+  let participants = cruise.participants;
+  participants = participants.filter((participant) => roles.has(participant.role))
+  if (participants.length === 0) {
+    return <span></span>
+  }
+  return (<ul>
+    {participants.map((participant) => <li key={`${cruise.expocode}_${participant.name}`}>{participant.name}</li>)}
+  </ul>)
+}
+
 const CruiseSelector = () => {
   const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet");
-  const [cruises, setCrusies] = useState([]);
+  const [cruises, setCrusies] = useState<Cruise[]>([]);
+  const [open, setOpen] = useState<boolean>(false)
 
   useEffect(() => {
     async function loadCruiseInfo() {
@@ -78,9 +125,12 @@ const CruiseSelector = () => {
   };
 
   return (
-    <Button variant="outline-secondary" disabled={loaded !== "loaded"}>
-      {buttonText[loaded]}
-    </Button>
+    <div>
+      <Button onClick={() => setOpen(!open)} variant="outline-secondary" disabled={loaded !== "loaded"}>
+        {buttonText[loaded]}
+      </Button>
+      {open === true && <Table><tbody>{cruises.map(cruise => <tr><td>{cruise.expocode}</td><td><CruiseLines cruise={cruise} /></td><td>{cruise.ship}</td><td>{cruise.country}</td><td>{cruise.startDate}</td><td>{cruise.endDate}</td><td><PIList cruise={cruise} /></td></tr>)}</tbody></Table>}
+    </div>
   );
 };
 
