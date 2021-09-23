@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import { Form, Button, Table } from "react-bootstrap";
+import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch"
+import { intersection, union } from 'lodash'
 
 interface Participant {
   name: string;
@@ -18,6 +20,7 @@ interface Collections {
 }
 
 interface Cruise {
+  id: number;
   expocode: string;
   startDate: string;
   endDate: string;
@@ -100,19 +103,65 @@ const PIList = ({ cruise }: { cruise: Cruise }) => {
   </ul>)
 }
 
+const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
+  preset: "match",
+  tokenize: "full",
+  document: {
+    id: "id",
+    index: [
+      "expocode",
+      "participants[]:name",
+      "collections:woce_lines",
+      "collections:groups",
+      "collections:programs",
+      "collections:oceans",
+      "ship",
+      "startDate",
+      "endDate",
+      "start_port",
+      "end_port",
+      "references[]:value"
+    ],
+  }
+}
+
 const CruiseSelector = () => {
   const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet");
   const [cruises, setCrusies] = useState<Cruise[]>([]);
+  const [searchResults, setSearchResults] = useState<Cruise[]>([]);
   const [open, setOpen] = useState<boolean>(false)
+  const [index, setIndex] = useState(new Document(flexsearchOptions))
+
+  const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
+    const tokens = query.split(/(\s+)/).filter(e => e.trim().length > 0)
+    if (tokens.length > 1) {
+      return intersection(...tokens.map(token => doSearch(token, idx)))
+    }
+    const queryResults = idx.search(query)
+    const queryIds = queryResults.map(tokenMatch => tokenMatch.result)
+    return union(...queryIds)
+  }
+
+  const setSearchFilteredCruises = (_cruises: Cruise[], ids: Id[]): void => {
+    setSearchResults(_cruises.filter(cruise => ids.includes(cruise.id)))
+  }
 
   useEffect(() => {
     async function loadCruiseInfo() {
       try {
         let response = await fetch(CCHDO_CRUISE_INFO);
-        let data = await response.json();
+        const data: Cruise[] = await response.json();
         setCrusies(data);
+
+        const newIndex = new Document(flexsearchOptions)
+        data.forEach(element => {
+          newIndex.add(element)
+        });
+        setIndex(newIndex)
+
         setLoaded("loaded");
       } catch (err) {
+        console.error(err)
         setLoaded("loadError");
       }
     }
@@ -129,7 +178,8 @@ const CruiseSelector = () => {
       <Button onClick={() => setOpen(!open)} variant="outline-secondary" disabled={loaded !== "loaded"}>
         {buttonText[loaded]}
       </Button>
-      {open === true && <Table><tbody>{cruises.map(cruise => <tr><td>{cruise.expocode}</td><td><CruiseLines cruise={cruise} /></td><td>{cruise.ship}</td><td>{cruise.country}</td><td>{cruise.startDate}</td><td>{cruise.endDate}</td><td><PIList cruise={cruise} /></td></tr>)}</tbody></Table>}
+
+      {open === true && <div><input onChange={(event) => setSearchFilteredCruises(cruises, doSearch(event.target.value, index))} /> <Table><tbody>{searchResults.map(cruise => <tr key={cruise.id}><td>{cruise.expocode}</td><td><CruiseLines cruise={cruise} /></td><td>{cruise.ship}</td><td>{cruise.country}</td><td>{cruise.startDate}</td><td>{cruise.endDate}</td><td><PIList cruise={cruise} /></td></tr>)}</tbody></Table></div>}
     </div>
   );
 };
