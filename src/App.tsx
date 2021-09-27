@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css";
 
 import { Form, Button, Table } from "react-bootstrap";
-import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch"
-import { intersection, union } from 'lodash'
+import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch";
+import { intersection, union } from "lodash";
+import BootstrapTable from "react-bootstrap-table-next";
+import paginationFactory from "react-bootstrap-table2-paginator";
 
 interface Participant {
   name: string;
@@ -59,11 +62,19 @@ const Files = () => {
       />
       <Form.Text>
         You can select multiple files using your system dialog box. (see how:{" "}
-        <a rel="noopener noreferrer" target="_blank" href="https://support.apple.com/en-lamr/guide/mac-help/mchlp1378/mac">
+        <a
+          rel="noopener noreferrer"
+          target="_blank"
+          href="https://support.apple.com/en-lamr/guide/mac-help/mchlp1378/mac"
+        >
           mac
         </a>
         ,{" "}
-        <a rel="noopener noreferrer" target="_blank" href="https://nerdschalk.com/how-to-select-multiple-files-on-windows-10-in-2021-7-ways/">
+        <a
+          rel="noopener noreferrer"
+          target="_blank"
+          href="https://nerdschalk.com/how-to-select-multiple-files-on-windows-10-in-2021-7-ways/"
+        >
           windows
         </a>
         )
@@ -84,24 +95,36 @@ type CruiseSelectorStates = "notYet" | "loadError" | "loaded";
 const CruiseLines = ({ cruise }: { cruise: Cruise }) => {
   const line = cruise.collections.woce_lines;
   if (line.length === 0) {
-    return <span></span>
+    return <span></span>;
   }
-  return (<ul>
-    {line.map((line) => <li key={`${cruise.expocode}_${line}`}>{line}</li>)}
-  </ul>)
-}
+  return (
+    <ul>
+      {line.map((line) => (
+        <li key={`${cruise.expocode}_${line}`}>{line}</li>
+      ))}
+    </ul>
+  );
+};
 
 const PIList = ({ cruise }: { cruise: Cruise }) => {
-  const roles = new Set(["Chief Scientist", "Co-Chief Scientist"])
+  const roles = new Set(["Chief Scientist", "Co-Chief Scientist"]);
   let participants = cruise.participants;
-  participants = participants.filter((participant) => roles.has(participant.role))
+  participants = participants.filter((participant) =>
+    roles.has(participant.role)
+  );
   if (participants.length === 0) {
-    return <span></span>
+    return <span></span>;
   }
-  return (<ul>
-    {participants.map((participant) => <li key={`${cruise.expocode}_${participant.name}`}>{participant.name}</li>)}
-  </ul>)
-}
+  return (
+    <ul>
+      {participants.map((participant) => (
+        <li key={`${cruise.expocode}_${participant.name}`}>
+          {participant.name}
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
   preset: "match",
@@ -120,31 +143,31 @@ const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
       "endDate",
       "start_port",
       "end_port",
-      "references[]:value"
+      "references[]:value",
     ],
-  }
-}
+  },
+};
 
 const CruiseSelector = () => {
   const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet");
   const [cruises, setCrusies] = useState<Cruise[]>([]);
   const [searchResults, setSearchResults] = useState<Cruise[]>([]);
-  const [open, setOpen] = useState<boolean>(false)
-  const [index, setIndex] = useState(new Document(flexsearchOptions))
+  const [open, setOpen] = useState<boolean>(false);
+  const [index, setIndex] = useState(new Document(flexsearchOptions));
 
   const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
-    const tokens = query.split(/(\s+)/).filter(e => e.trim().length > 0)
+    const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
     if (tokens.length > 1) {
-      return intersection(...tokens.map(token => doSearch(token, idx)))
+      return intersection(...tokens.map((token) => doSearch(token, idx)));
     }
-    const queryResults = idx.search(query)
-    const queryIds = queryResults.map(tokenMatch => tokenMatch.result)
-    return union(...queryIds)
-  }
+    const queryResults = idx.search(query);
+    const queryIds = queryResults.map((tokenMatch) => tokenMatch.result);
+    return union(...queryIds);
+  };
 
   const setSearchFilteredCruises = (_cruises: Cruise[], ids: Id[]): void => {
-    setSearchResults(_cruises.filter(cruise => ids.includes(cruise.id)))
-  }
+    setSearchResults(_cruises.filter((cruise) => ids.includes(cruise.id)));
+  };
 
   useEffect(() => {
     async function loadCruiseInfo() {
@@ -153,15 +176,15 @@ const CruiseSelector = () => {
         const data: Cruise[] = await response.json();
         setCrusies(data);
 
-        const newIndex = new Document(flexsearchOptions)
-        data.forEach(element => {
-          newIndex.add(element)
+        const newIndex = new Document(flexsearchOptions);
+        data.forEach((element) => {
+          newIndex.add(element);
         });
-        setIndex(newIndex)
+        setIndex(newIndex);
 
         setLoaded("loaded");
       } catch (err) {
-        console.error(err)
+        console.error(err);
         setLoaded("loadError");
       }
     }
@@ -173,13 +196,99 @@ const CruiseSelector = () => {
     loaded: `Select Cruise: (${cruises.length} cruises)`,
   };
 
+  const listFormatter = (cell: string[], row: any) => {
+    if (cell.length === 0) {
+      return <span>-</span>;
+    }
+    return (
+      <ul>
+        {cell.map((str) => (
+          <li key={str}>{str}</li>
+        ))}
+      </ul>
+    );
+  };
+  const chiSciFormatter = (cell: Participant[], row: any) => {
+    const chiSci = cell.filter((obj) => obj.role === "Chief Scientist");
+    if (chiSci.length === 0) {
+      return <span>-</span>;
+    }
+    return (
+      <ul>
+        {chiSci.map((str) => (
+          <li key={str.name}>{str.name}</li>
+        ))}
+      </ul>
+    );
+  };
+
+  const columns = [
+    {
+      dataField: "df1",
+      isDummyField: true,
+      text: "Action 1",
+    },
+    {
+      dataField: "expocode",
+      text: "Expocode",
+    },
+    {
+      dataField: "collections.woce_lines",
+      text: "Line",
+      formatter: listFormatter,
+    },
+    {
+      dataField: "ship",
+      text: "Ship",
+    },
+    {
+      dataField: "country",
+      text: "Country",
+    },
+    {
+      dataField: "startDate",
+      text: "Start Date",
+    },
+    {
+      dataField: "endDate",
+      text: "End Date",
+    },
+    {
+      dataField: "participants",
+      text: "Chi Sci",
+      formatter: chiSciFormatter,
+    },
+  ];
+
   return (
     <div>
-      <Button onClick={() => setOpen(!open)} variant="outline-secondary" disabled={loaded !== "loaded"}>
+      <Button
+        onClick={() => setOpen(!open)}
+        variant="outline-secondary"
+        disabled={loaded !== "loaded"}
+      >
         {buttonText[loaded]}
       </Button>
 
-      {open === true && <div><input onChange={(event) => setSearchFilteredCruises(cruises, doSearch(event.target.value, index))} /> <Table><tbody>{searchResults.map(cruise => <tr key={cruise.id}><td>{cruise.expocode}</td><td><CruiseLines cruise={cruise} /></td><td>{cruise.ship}</td><td>{cruise.country}</td><td>{cruise.startDate}</td><td>{cruise.endDate}</td><td><PIList cruise={cruise} /></td></tr>)}</tbody></Table></div>}
+      {open === true && (
+        <div>
+          <input
+            type="search"
+            onChange={(event) =>
+              setSearchFilteredCruises(
+                cruises,
+                doSearch(event.target.value, index)
+              )
+            }
+          />
+          <BootstrapTable
+            keyField="expocode"
+            data={searchResults}
+            columns={columns}
+            pagination={paginationFactory({})}
+          />
+        </div>
+      )}
     </div>
   );
 };
