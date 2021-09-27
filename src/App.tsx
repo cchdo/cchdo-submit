@@ -173,7 +173,8 @@ const CruiseSelector = () => {
     async function loadCruiseInfo() {
       try {
         let response = await fetch(CCHDO_CRUISE_INFO);
-        const data: Cruise[] = await response.json();
+        let data: Cruise[] = await response.json();
+        data = data.sort((a, b) => a.startDate > b.startDate? a.startDate === b.startDate? 0: -1 : -0)
         setCrusies(data);
 
         const newIndex = new Document(flexsearchOptions);
@@ -286,6 +287,7 @@ const CruiseSelector = () => {
             data={searchResults}
             columns={columns}
             pagination={paginationFactory({})}
+            noDataIndication="No Cruises Found"
           />
         </div>
       )}
