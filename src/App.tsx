@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css";
 
-import { Form, Button, Table } from "react-bootstrap";
+import { Form, Button, Collapse, Card, Stack, Col } from "react-bootstrap";
 import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch";
 import { intersection, union } from "lodash";
 import BootstrapTable from "react-bootstrap-table-next";
@@ -92,40 +92,6 @@ const Files = () => {
 
 type CruiseSelectorStates = "notYet" | "loadError" | "loaded";
 
-const CruiseLines = ({ cruise }: { cruise: Cruise }) => {
-  const line = cruise.collections.woce_lines;
-  if (line.length === 0) {
-    return <span></span>;
-  }
-  return (
-    <ul>
-      {line.map((line) => (
-        <li key={`${cruise.expocode}_${line}`}>{line}</li>
-      ))}
-    </ul>
-  );
-};
-
-const PIList = ({ cruise }: { cruise: Cruise }) => {
-  const roles = new Set(["Chief Scientist", "Co-Chief Scientist"]);
-  let participants = cruise.participants;
-  participants = participants.filter((participant) =>
-    roles.has(participant.role)
-  );
-  if (participants.length === 0) {
-    return <span></span>;
-  }
-  return (
-    <ul>
-      {participants.map((participant) => (
-        <li key={`${cruise.expocode}_${participant.name}`}>
-          {participant.name}
-        </li>
-      ))}
-    </ul>
-  );
-};
-
 const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
   preset: "match",
   tokenize: "full",
@@ -138,6 +104,7 @@ const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
       "collections:groups",
       "collections:programs",
       "collections:oceans",
+      "country",
       "ship",
       "startDate",
       "endDate",
@@ -154,6 +121,7 @@ const CruiseSelector = () => {
   const [searchResults, setSearchResults] = useState<Cruise[]>([]);
   const [open, setOpen] = useState<boolean>(false);
   const [index, setIndex] = useState(new Document(flexsearchOptions));
+  const [searchQuery, setSearchQuery] = useState("");
 
   const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
     const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
@@ -174,7 +142,13 @@ const CruiseSelector = () => {
       try {
         let response = await fetch(CCHDO_CRUISE_INFO);
         let data: Cruise[] = await response.json();
-        data = data.sort((a, b) => a.startDate > b.startDate? a.startDate === b.startDate? 0: -1 : -0)
+        data = data.sort((a, b) =>
+          a.startDate > b.startDate
+            ? a.startDate === b.startDate
+              ? 0
+              : -1
+            : -0
+        );
         setCrusies(data);
 
         const newIndex = new Document(flexsearchOptions);
@@ -227,7 +201,10 @@ const CruiseSelector = () => {
     {
       dataField: "df1",
       isDummyField: true,
-      text: "Action 1",
+      text: "Select",
+      formatter: (_: any, row: Cruise, rowIndex: number) => {
+        return <Button onClick={() => console.log(row.id)}>Select</Button>;
+      },
     },
     {
       dataField: "expocode",
@@ -271,26 +248,35 @@ const CruiseSelector = () => {
         {buttonText[loaded]}
       </Button>
 
-      {open === true && (
-        <div>
-          <input
-            type="search"
-            onChange={(event) =>
-              setSearchFilteredCruises(
-                cruises,
-                doSearch(event.target.value, index)
-              )
-            }
-          />
-          <BootstrapTable
-            keyField="expocode"
-            data={searchResults}
-            columns={columns}
-            pagination={paginationFactory({})}
-            noDataIndication="No Cruises Found"
-          />
-        </div>
-      )}
+      <Collapse in={open}>
+        <Card>
+          <Card.Body>
+            <Stack gap={1}>
+              <Col md={4}>
+                <Form.Control
+                  type="search"
+                  placeholder="search..."
+                  value={searchQuery}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setSearchFilteredCruises(
+                      cruises,
+                      doSearch(event.target.value, index)
+                    );
+                  }}
+                />
+              </Col>
+              <BootstrapTable
+                keyField="expocode"
+                data={searchQuery.trim() === "" ? cruises : searchResults}
+                columns={columns}
+                pagination={paginationFactory({})}
+                noDataIndication="No Cruises Found"
+              />
+            </Stack>
+          </Card.Body>
+        </Card>
+      </Collapse>
     </div>
   );
 };
