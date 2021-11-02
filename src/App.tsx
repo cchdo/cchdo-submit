@@ -198,14 +198,15 @@ const CruiseSelector = () => {
   const PageForAlertBad = (
     <Alert variant="danger">
       This was a page for {pageFor}, but no cruise with that Expocode could be
-      found, use the Select Cruise button to select an existing cruise or Clear
-      Cruise to not select anything.
+      found, use the Select Cruise button to select an existing cruise. 
+      Or ignore this message to not select a cruise.
     </Alert>
   );
   const PageForAlertYay = (
     <Alert variant="success">
       This is a page for {pageFor}, if you didn't want this, use the Select
-      Cruise button to select a different cruise.
+      Cruise button to select a different cruise or Clear Cruise to not select 
+      anything.
     </Alert>
   );
 
