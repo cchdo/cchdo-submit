@@ -132,6 +132,8 @@ const CruiseSelector = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCruise, setSelectedCruise] = useState<number | undefined>();
 
+  const pageFor = new URLSearchParams(window.location.search).get("for");
+
   const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
     const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
     if (tokens.length > 1) {
@@ -169,6 +171,15 @@ const CruiseSelector = () => {
           newIndex.add(element);
         });
         setIndex(newIndex);
+
+        if (pageFor !== null) {
+          let cruiseObjects = data.filter(
+            (cruise) => cruise.expocode === pageFor
+          );
+          if (cruiseObjects.length === 1) {
+            setSelectedCruise(cruiseObjects[0].id);
+          }
+        }
 
         setLoaded("loaded");
       } catch (err) {
