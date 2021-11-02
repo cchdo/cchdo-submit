@@ -2,7 +2,15 @@ import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "react-bootstrap-table2-paginator/dist/react-bootstrap-table2-paginator.min.css";
 
-import { Form, Button, Collapse, Card, Stack, Col } from "react-bootstrap";
+import {
+  Form,
+  Button,
+  Collapse,
+  Card,
+  Stack,
+  Col,
+  Container,
+} from "react-bootstrap";
 import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch";
 import { intersection, union } from "lodash";
 import BootstrapTable from "react-bootstrap-table-next";
@@ -122,6 +130,7 @@ const CruiseSelector = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [index, setIndex] = useState(new Document(flexsearchOptions));
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCruise, setSelectedCruise] = useState<number | undefined>();
 
   const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
     const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
@@ -136,6 +145,10 @@ const CruiseSelector = () => {
   const setSearchFilteredCruises = (_cruises: Cruise[], ids: Id[]): void => {
     setSearchResults(_cruises.filter((cruise) => ids.includes(cruise.id)));
   };
+
+  const selectedCruiseObject: Cruise | undefined = selectedCruise
+    ? cruises.filter((cruise) => cruise.id === selectedCruise)[0]
+    : undefined;
 
   useEffect(() => {
     async function loadCruiseInfo() {
@@ -165,10 +178,11 @@ const CruiseSelector = () => {
     }
     loadCruiseInfo();
   }, []);
+
   const buttonText = {
     notYet: "Loading cruises...",
     loadError: "Could not load cruise list",
-    loaded: `Select Cruise: (${cruises.length} cruises)`,
+    loaded: `Select Cruise`,
   };
 
   const listFormatter = (cell: string[], row: any) => {
@@ -203,7 +217,16 @@ const CruiseSelector = () => {
       isDummyField: true,
       text: "Select",
       formatter: (_: any, row: Cruise, rowIndex: number) => {
-        return <Button onClick={() => console.log(row.id)}>Select</Button>;
+        return (
+          <Button
+            onClick={() => {
+              setSelectedCruise(row.id);
+              setOpen(false);
+            }}
+          >
+            Select
+          </Button>
+        );
       },
     },
     {
@@ -240,13 +263,34 @@ const CruiseSelector = () => {
 
   return (
     <div>
+      <p>
+        Selected Cruise:{" "}
+        {selectedCruise
+          ? `${selectedCruiseObject?.expocode} (${selectedCruiseObject?.startDate} to ${selectedCruiseObject?.endDate} on the ${selectedCruiseObject?.ship})`
+          : "None (this is OK)"}
+      </p>
+      <input
+        type="hidden"
+        name="cruise_id"
+        id="cruise_id"
+        value={selectedCruise}
+      />
       <Button
         onClick={() => setOpen(!open)}
         variant="outline-secondary"
         disabled={loaded !== "loaded"}
       >
-        {buttonText[loaded]}
+        {selectedCruise ? "Change Cruise" : buttonText[loaded]}
       </Button>
+
+      {selectedCruise && (
+        <Button
+          onClick={() => setSelectedCruise(undefined)}
+          variant="outline-secondary"
+        >
+          Clear Cruise
+        </Button>
+      )}
 
       <Collapse in={open}>
         <Card>
@@ -266,13 +310,15 @@ const CruiseSelector = () => {
                   }}
                 />
               </Col>
-              <BootstrapTable
-                keyField="expocode"
-                data={searchQuery.trim() === "" ? cruises : searchResults}
-                columns={columns}
-                pagination={paginationFactory({})}
-                noDataIndication="No Cruises Found"
-              />
+              <div className="table-responsive-lg">
+                <BootstrapTable
+                  keyField="expocode"
+                  data={searchQuery.trim() === "" ? cruises : searchResults}
+                  columns={columns}
+                  pagination={paginationFactory({})}
+                  noDataIndication="No Cruises Found"
+                />
+              </div>
             </Stack>
           </Card.Body>
         </Card>
@@ -321,7 +367,7 @@ const DataTypeSelector = () => {
 
 function App() {
   return (
-    <div>
+    <Container>
       <h1>CCHDO Submit Page</h1>
       <h2>Required Information</h2>
       <Form onSubmit={handleFormSubmit}>
@@ -380,7 +426,7 @@ function App() {
           Submit
         </Button>
       </Form>
-    </div>
+    </Container>
   );
 }
 
