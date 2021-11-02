@@ -10,6 +10,7 @@ import {
   Stack,
   Col,
   Container,
+  Alert,
 } from "react-bootstrap";
 import { Document, Id, IndexOptionsForDocumentSearch } from "flexsearch";
 import { intersection, union } from "lodash";
@@ -194,6 +195,20 @@ const CruiseSelector = () => {
     loadCruiseInfo();
   }, []);
 
+  const PageForAlertBad = (
+    <Alert variant="danger">
+      This was a page for {pageFor}, but no cruise with that Expocode could be
+      found, use the Select Cruise button to select an existing cruise or Clear
+      Cruise to not select anything.
+    </Alert>
+  );
+  const PageForAlertYay = (
+    <Alert variant="success">
+      This is a page for {pageFor}, if you didn't want this, use the Select
+      Cruise button to select a different cruise.
+    </Alert>
+  );
+
   const buttonText = {
     notYet: "Loading cruises...",
     loadError: "Could not load cruise list",
@@ -237,6 +252,7 @@ const CruiseSelector = () => {
             onClick={() => {
               setSelectedCruise(row.id);
               setOpen(false);
+              setPageFor(null);
             }}
           >
             Select
@@ -278,6 +294,8 @@ const CruiseSelector = () => {
 
   return (
     <div>
+      {pageFor && loaded === "loaded" && !selectedCruise && PageForAlertBad}
+      {pageFor && loaded === "loaded" && selectedCruise && PageForAlertYay}
       <p>
         Selected Cruise:{" "}
         {selectedCruise
@@ -300,7 +318,10 @@ const CruiseSelector = () => {
 
       {selectedCruise && (
         <Button
-          onClick={() => setSelectedCruise(undefined)}
+          onClick={() => {
+            setSelectedCruise(undefined);
+            setPageFor(null);
+          }}
           variant="outline-secondary"
         >
           Clear Cruise
