@@ -131,8 +131,7 @@ const CruiseSelector = () => {
   const [index, setIndex] = useState(new Document(flexsearchOptions));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCruise, setSelectedCruise] = useState<number | undefined>();
-
-  const pageFor = new URLSearchParams(window.location.search).get("for");
+  const [pageFor, setPageFor] = useState<string | null>(null);
 
   const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
     const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
@@ -154,6 +153,11 @@ const CruiseSelector = () => {
 
   useEffect(() => {
     async function loadCruiseInfo() {
+      let searchPageFor = new URLSearchParams(window.location.search).get(
+        "for"
+      );
+      setPageFor(searchPageFor);
+
       try {
         let response = await fetch(CCHDO_CRUISE_INFO);
         let data: Cruise[] = await response.json();
@@ -172,9 +176,9 @@ const CruiseSelector = () => {
         });
         setIndex(newIndex);
 
-        if (pageFor !== null) {
+        if (searchPageFor !== null) {
           let cruiseObjects = data.filter(
-            (cruise) => cruise.expocode === pageFor
+            (cruise) => cruise.expocode === searchPageFor
           );
           if (cruiseObjects.length === 1) {
             setSelectedCruise(cruiseObjects[0].id);
