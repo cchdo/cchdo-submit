@@ -65,38 +65,28 @@ const flexsearchOptions: IndexOptionsForDocumentSearch<Cruise> = {
       "start_port",
       "end_port",
       "references[]:value",
+      "references[]:organization",
     ],
   },
 };
 
 const CruiseSelector = () => {
-  const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet");
-  const [cruises, setCrusies] = useState<Cruise[]>([]);
-  const [searchResults, setSearchResults] = useState<Cruise[]>([]);
+  // Basic UI State
+  const [pageFor, setPageFor] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<CruiseSelectorStates>("notYet");
+
+  // Contents related to searching and filtering
+  const [cruises, setCrusies] = useState<Cruise[]>([]);
   const [index, setIndex] = useState(new Document(flexsearchOptions));
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Cruise[]>([]);
+
+  // If a cruise is selected, its value
   const [selectedCruise, setSelectedCruise] = useState<number | undefined>();
-  const [pageFor, setPageFor] = useState<string | null>(null);
 
-  const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
-    const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
-    if (tokens.length > 1) {
-      return intersection(...tokens.map((token) => doSearch(token, idx)));
-    }
-    const queryResults = idx.search(query);
-    const queryIds = queryResults.map((tokenMatch) => tokenMatch.result);
-    return union(...queryIds);
-  };
-
-  const setSearchFilteredCruises = (_cruises: Cruise[], ids: Id[]): void => {
-    setSearchResults(_cruises.filter((cruise) => ids.includes(cruise.id)));
-  };
-
-  const selectedCruiseObject: Cruise | undefined = selectedCruise
-    ? cruises.filter((cruise) => cruise.id === selectedCruise)[0]
-    : undefined;
-
+  // Load the cruise metadata from CCHDO and parse into search index
+  // If the ?for= query param is set, try to find that expocode and set as the selected cruise
   useEffect(() => {
     async function loadCruiseInfo() {
       let searchPageFor = new URLSearchParams(window.location.search).get(
@@ -139,6 +129,24 @@ const CruiseSelector = () => {
     }
     loadCruiseInfo();
   }, []);
+
+  const doSearch = (query: string, idx: Document<Cruise>): Id[] => {
+    const tokens = query.split(/(\s+)/).filter((e) => e.trim().length > 0);
+    if (tokens.length > 1) {
+      return intersection(...tokens.map((token) => doSearch(token, idx)));
+    }
+    const queryResults = idx.search(query);
+    const queryIds = queryResults.map((tokenMatch) => tokenMatch.result);
+    return union(...queryIds);
+  };
+
+  const setSearchFilteredCruises = (_cruises: Cruise[], ids: Id[]): void => {
+    setSearchResults(_cruises.filter((cruise) => ids.includes(cruise.id)));
+  };
+
+  const selectedCruiseObject: Cruise | undefined = selectedCruise
+    ? cruises.filter((cruise) => cruise.id === selectedCruise)[0]
+    : undefined;
 
   const PageForAlertBad = (
     <Alert variant="danger">
@@ -240,6 +248,17 @@ const CruiseSelector = () => {
 
   return (
     <div>
+      {
+        // This hidden input is the form element which actually sends the selected cruise to the submit API
+        // Everything else is to help the user select its value, every other html input MUST NOT have a name attribute
+      }
+      <input
+        type="hidden"
+        name="cruise_id"
+        id="cruise_id"
+        value={selectedCruise}
+      />
+
       {pageFor && loaded === "loaded" && !selectedCruise && PageForAlertBad}
       {pageFor && loaded === "loaded" && selectedCruise && PageForAlertYay}
       <p>
@@ -248,12 +267,6 @@ const CruiseSelector = () => {
           ? `${selectedCruiseObject?.expocode} (${selectedCruiseObject?.startDate} to ${selectedCruiseObject?.endDate} on the ${selectedCruiseObject?.ship})`
           : "None (this is OK)"}
       </p>
-      <input
-        type="hidden"
-        name="cruise_id"
-        id="cruise_id"
-        value={selectedCruise}
-      />
       <Button
         onClick={() => setOpen(!open)}
         variant="outline-secondary"
